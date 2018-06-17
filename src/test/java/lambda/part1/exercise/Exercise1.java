@@ -18,7 +18,12 @@ public class Exercise1 {
     public void sortPersonsByAgeUsingArraysSortComparator() {
         Person[] persons = getPersons();
 
-        Arrays.sort(persons, Comparator.comparingInt(Person::getAge));
+        Arrays.sort(persons, new Comparator<Person>() {
+            @Override
+            public int compare(Person o1, Person o2) {
+                return Integer.compare(o1.getAge(), o2.getAge());
+            }
+        });
 
         assertArrayEquals(new Person[]{
                 new Person("Иван", "Мельников", 20),
@@ -55,17 +60,12 @@ public class Exercise1 {
             @Override
             public int compare(Person o1, Person o2) {
                 int i = o1.getLastName().compareTo(o2.getLastName());
-                int j = o1.getFirstName().compareTo(o2.getFirstName());
 
                 if (i != 0) {
                     return i;
                 }
+                return o1.getFirstName().compareTo(o2.getFirstName());
 
-                if (j != 0) {
-                    return j;
-                }
-
-                return 0;
             }
         });
 
@@ -83,8 +83,15 @@ public class Exercise1 {
 
         Person person = null;
 
+        Predicate<Person> predicate = new Predicate<Person>() {
+            @Override
+            public boolean apply(Person o) {
+                return o.getAge() == 30;
+            }
+        };
+
         person = FluentIterable.from(persons)
-                .filter(p -> p.getAge() == 30)
+                .filter(predicate)
                 .first().get();
 
         assertEquals(new Person("Николай", "Зимов", 30), person);
@@ -100,10 +107,7 @@ public class Exercise1 {
                 .filter(new Predicate<Person>() {
                     @Override
                     public boolean apply(Person person) {
-                        if (person.getAge() == 30) {
-                            return true;
-                        }
-                        return false;
+                        return person.getAge() == 30;
                     }
                 })
                 .first().get();
