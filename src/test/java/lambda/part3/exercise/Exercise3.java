@@ -5,6 +5,7 @@ import lambda.data.JobHistoryEntry;
 import lambda.data.Person;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -17,19 +18,26 @@ public class Exercise3 {
 
     private static class LazyMapHelper<T, R> {
 
-        public static <T> LazyMapHelper<T, T> from(List<T> list) {
-            // TODO реализация
-            throw new UnsupportedOperationException();
+        private List<T> list;
+        private Function<T, R> function;
+
+        private LazyMapHelper(List<T> list, Function<T, R> function) {
+            this.list = list;
+            this.function = function;
         }
 
-        public List<R> force() {
-            // TODO реализация
-            throw new UnsupportedOperationException();
+        static <T> LazyMapHelper<T, T> from(List<T> list) {
+            return new LazyMapHelper<>(list, item -> item);
         }
 
-        public <R2> LazyMapHelper<T, R2> map(Function<R, R2> mapping) {
-            // TODO реализация
-            throw new UnsupportedOperationException();
+        List<R> force() {
+            List<R> newList = new ArrayList<>();
+            list.forEach(item -> newList.add(function.apply(item)));
+            return newList;
+        }
+
+        <R2> LazyMapHelper<T, R2> map(Function<R, R2> mapping) {
+            return new LazyMapHelper<>(list, function.andThen(mapping));
         }
     }
 
@@ -37,7 +45,14 @@ public class Exercise3 {
     public void mapEmployeesToLengthOfTheirFullNamesUsingLazyMapHelper() {
         List<Employee> employees = getEmployees();
 
-        List<Integer> lengths = null;
+        List<Integer> lengths;
+
+        lengths = LazyMapHelper.from(employees)
+                .map(Employee::getPerson)
+                .map(Person::getFullName)
+                .map(String::length)
+                .force();
+
         // TODO                 LazyMapHelper.from(employees)
         // TODO                              .map(Employee -> Person)
         // TODO                              .map(Person -> String(full name))
