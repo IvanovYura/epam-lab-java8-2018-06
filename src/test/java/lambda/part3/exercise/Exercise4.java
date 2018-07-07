@@ -1,5 +1,6 @@
 package lambda.part3.exercise;
 
+import com.google.common.primitives.Chars;
 import lambda.data.Employee;
 import lambda.data.JobHistoryEntry;
 import lambda.data.Person;
@@ -7,6 +8,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -18,20 +20,42 @@ public class Exercise4 {
 
     private static class LazyCollectionHelper<T, R> {
 
-        public static <T> LazyCollectionHelper<T, T> from(List<T> list) {
-            throw new UnsupportedOperationException();
+        private List<T> list;
+        private Function<T, List<R>> function;
+
+        LazyCollectionHelper(List<T> list, Function<T, List<R>> function) {
+            this.list = list;
+            this.function = function;
         }
 
-        public <U> LazyCollectionHelper<T, U> flatMap(Function<R, List<U>> flatMapping) {
-            throw new UnsupportedOperationException();
+        static <T> LazyCollectionHelper<T, T> from(List<T> list) {
+            return new LazyCollectionHelper<>(list, Collections::singletonList);
         }
 
-        public <U> LazyCollectionHelper<T, U> map(Function<R, U> mapping) {
-            throw new UnsupportedOperationException();
+        <U> LazyCollectionHelper<T, U> flatMap(Function<R, List<U>> flatMapping) {
+            return new LazyCollectionHelper<>(list, function.andThen(
+                    list -> {
+                        List<U> result = new ArrayList<>();
+                        list.forEach(flatMapping.andThen(result::addAll)::apply);
+                        return result;
+                    }
+            ));
         }
 
-        public List<R> force() {
-            throw new UnsupportedOperationException();
+        <U> LazyCollectionHelper<T, U> map(Function<R, U> mapping) {
+            return new LazyCollectionHelper<>(list, function.andThen(
+                    list -> {
+                        List<U> result = new ArrayList<>();
+                        list.forEach(mapping.andThen(result::add)::apply);
+                        return result;
+                    }
+            ));
+        }
+
+        List<R> force() {
+            List<R> result = new ArrayList<>();
+            list.forEach(function.andThen(result::addAll)::apply);
+            return result;
         }
     }
 
@@ -39,7 +63,15 @@ public class Exercise4 {
     public void mapEmployeesToCodesOfLetterTheirPositionsUsingLazyFlatMapHelper() {
         List<Employee> employees = getEmployees();
 
-        List<Integer> codes = null;
+        List<Integer> codes;
+
+        codes = LazyCollectionHelper.from(employees)
+                .flatMap(Employee::getJobHistory)
+                .map(JobHistoryEntry::getPosition)
+                .flatMap(s -> Chars.asList(s.toCharArray()))
+                .map(character -> (int) character)
+                .force();
+
         // TODO              LazyCollectionHelper.from(employees)
         // TODO                                  .flatMap(Employee -> JobHistoryEntry)
         // TODO                                  .map(JobHistoryEntry -> String(position))
@@ -49,7 +81,7 @@ public class Exercise4 {
         assertEquals(calcCodes("dev", "dev", "tester", "dev", "dev", "QA", "QA", "dev", "tester", "tester", "QA", "QA", "QA", "dev"), codes);
     }
 
-    private static List<Integer> calcCodes(String...strings) {
+    private static List<Integer> calcCodes(String... strings) {
         List<Integer> codes = new ArrayList<>();
         for (String string : strings) {
             for (char letter : string.toCharArray()) {
