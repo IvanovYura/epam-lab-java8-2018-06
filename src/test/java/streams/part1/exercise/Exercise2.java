@@ -5,9 +5,14 @@ import lambda.data.JobHistoryEntry;
 import lambda.data.Person;
 import org.junit.Test;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -18,7 +23,13 @@ public class Exercise2 {
     public void calcAverageAgeOfEmployees() {
         List<Employee> employees = getEmployees();
 
-        Double expected = null;
+        Double expected;
+
+        expected = employees.stream()
+                .map(Employee::getPerson)
+                .mapToDouble(Person::getAge)
+                .average()
+                .getAsDouble();
 
         assertEquals(33.66, expected, 0.1);
     }
@@ -27,7 +38,12 @@ public class Exercise2 {
     public void findPersonWithLongestFullName() {
         List<Employee> employees = getEmployees();
 
-        Person expected = null;
+        Person expected;
+
+        expected = employees.stream()
+                .map(Employee::getPerson)
+                .max(Comparator.comparingInt(person -> person.getFullName().length()))
+                .get();
 
         assertEquals(expected, employees.get(1).getPerson());
     }
@@ -36,7 +52,29 @@ public class Exercise2 {
     public void findEmployeeWithMaximumDurationAtOnePosition() {
         List<Employee> employees = getEmployees();
 
-        Employee expected = null;
+        Employee expected;
+        Comparator<JobHistoryEntry> jobHistoryEntryComparator = Comparator.comparingInt(JobHistoryEntry::getDuration);
+
+        expected = employees.stream()
+                .max(Comparator.comparingInt(employee -> employee.getJobHistory().stream()
+                        .max(jobHistoryEntryComparator)
+                        .get()
+                        .getDuration()))
+                .get();
+        
+//        Employee maxDurationEmployee = null;
+//        int maxDuration = 0;
+//        for (Employee employee : employees) {
+//
+//
+//            for (JobHistoryEntry jobHistoryEntry : employee.getJobHistory()) {
+//                int duration = jobHistoryEntry.getDuration();
+//                if (maxDuration < duration) {
+//                    maxDuration = duration;
+//                    maxDurationEmployee = employee;
+//                }
+//            }
+//        }
 
         assertEquals(expected, employees.get(4));
     }
@@ -50,7 +88,16 @@ public class Exercise2 {
     public void calcTotalSalaryWithCoefficientWorkExperience() {
         List<Employee> employees = getEmployees();
 
-        Double expected = null;
+        int base = 75000;
+        Double expected;
+
+        expected = getEmployees().stream()
+                .map(Employee::getJobHistory)
+                .mapToDouble(jobHistoryEntries -> {
+                    int last = jobHistoryEntries.size() - 1;
+                    return jobHistoryEntries.get(last).getDuration() > 3 ? 1.2 * base : base;
+                }).sum();
+
 
         assertEquals(465000.0, expected, 0.001);
     }
